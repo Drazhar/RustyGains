@@ -51,13 +51,14 @@ pub fn render<B: Backend>(app: &mut App, frame: &mut Frame<'_, B>) {
                 Constraint::Length(7),
                 Constraint::Length(14),
             ])
-            .highlight_style(
-                Style::new().fg(
-                    app.activities[app.activity_state.table.selected().unwrap_or(0)]
-                        .color
-                        .into(),
-                ),
-            )
+            .highlight_style(if !app.activities.is_empty() {
+                Style::default().fg(app.activities
+                    [app.activity_state.table.selected().unwrap_or(0)]
+                .color
+                .into())
+            } else {
+                Style::default()
+            })
             .highlight_symbol(">> ")
             .block(
                 Block::default()
@@ -130,8 +131,10 @@ pub fn render<B: Backend>(app: &mut App, frame: &mut Frame<'_, B>) {
             Line::from("Save"),
         ];
 
-        lines[app.activity_state.add.selected].spans[0].style =
-            Style::default().fg(HIGHLIGHT_COLOR);
+        if !lines.is_empty() {
+            lines[app.activity_state.add.selected].spans[0].style =
+                Style::default().fg(HIGHLIGHT_COLOR);
+        }
 
         frame.render_widget(
             tui::widgets::Paragraph::new(lines).block(

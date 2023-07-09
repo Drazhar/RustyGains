@@ -7,3 +7,5 @@ these elements.
 
 This project is in an unusable state right now! Hopefully this will change in
 the near future.
+
+![Preview image](preview.png)
