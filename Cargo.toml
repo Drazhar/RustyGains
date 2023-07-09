@@ -1,5 +1,5 @@
 [package]
-name = "RustyGains"
+name = "rusty_gains"
 version = "0.1.0"
 authors = ["Philip Trauth <trauthp@gmail.com>"]
 license = "MIT"

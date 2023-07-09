@@ -1,8 +1,8 @@
+use rusty_gains::app::{App, AppResult};
+use rusty_gains::event::{Event, EventHandler};
+use rusty_gains::handler::handle_key_events;
+use rusty_gains::tui::Tui;
 use std::io;
-use tlog::app::{App, AppResult};
-use tlog::event::{Event, EventHandler};
-use tlog::handler::handle_key_events;
-use tlog::tui::Tui;
 use tui::backend::CrosstermBackend;
 use tui::Terminal;
 
