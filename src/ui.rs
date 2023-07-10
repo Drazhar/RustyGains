@@ -1,10 +1,11 @@
 mod activities;
 mod exercises;
+mod floating_window;
 mod overview;
 pub mod tabs;
 mod workouts;
 
-pub use activities::AddActivityState;
+pub use activities::add_activity_window::AddActivityState;
 use tui::{
     backend::Backend,
     layout::{Constraint, Direction, Layout, Rect},
