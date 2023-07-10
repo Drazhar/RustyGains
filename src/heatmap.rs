@@ -4,7 +4,7 @@ use tui::{
     text::{Line, Span},
 };
 
-pub fn render<'a>(total_width: usize) -> Vec<Line<'a>> {
+pub fn create<'a>(total_width: usize) -> Vec<Line<'a>> {
     let now = chrono::Local::now();
     let weekday_width: usize = 3;
     let width: usize = total_width - weekday_width;

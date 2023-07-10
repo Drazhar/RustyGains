@@ -5,13 +5,19 @@ use tui::{
     layout::Constraint,
     style::{Modifier, Style},
     text::Span,
-    widgets::{Block, BorderType, Borders, Row},
+    widgets::{Block, BorderType, Borders, Row, TableState},
     Frame,
 };
 
-use crate::app::{ActiveArea, App};
+use crate::app::{ActiveMenu, App};
 
-use super::{basic_layout, render_tabs};
+use super::{basic_layout, render_tabs, AddActivityState};
+
+#[derive(Default)]
+pub struct ActivityState {
+    pub add: AddActivityState,
+    pub table: TableState,
+}
 
 pub fn render<B: Backend>(app: &mut App, frame: &mut Frame<'_, B>) {
     let layout = basic_layout(frame);
@@ -77,7 +83,7 @@ pub fn render<B: Backend>(app: &mut App, frame: &mut Frame<'_, B>) {
         layout[2],
     );
 
-    if app.active_area == ActiveArea::AddActivity {
+    if app.active_area == ActiveMenu::AddActivity {
         add_activity_window::draw(frame, app);
     }
 }

@@ -6,6 +6,8 @@ pub mod tabs;
 mod workouts;
 
 pub use activities::add_activity_window::AddActivityState;
+pub use activities::ActivityState;
+
 use tui::{
     backend::Backend,
     layout::{Constraint, Direction, Layout, Rect},

@@ -16,7 +16,7 @@ pub fn render<B: Backend>(app: &App, frame: &mut Frame<'_, B>) {
     let heatmap_width: usize = (layout[1].width - 4).into();
 
     frame.render_widget(
-        tui::widgets::Paragraph::new(crate::heatmap::render(heatmap_width)).block(
+        tui::widgets::Paragraph::new(crate::heatmap::create(heatmap_width)).block(
             Block::default()
                 .title("Heatmap")
                 .borders(Borders::ALL)

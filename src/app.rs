@@ -4,18 +4,18 @@ use tui::widgets::TableState;
 
 use crate::{
     data::{Activity, DB},
-    ui::{tabs::Tab, AddActivityState},
+    ui::tabs::Tab,
+    ui::ActivityState,
 };
 
-/// Application result type.
+/// Quality of life result type.
 pub type AppResult<T> = std::result::Result<T, Box<dyn error::Error>>;
 
-/// Application.
+/// The state of the application.
 pub struct App {
-    /// Is the application running?
     pub running: bool,
     pub active_tab: Tab,
-    pub active_area: ActiveArea,
+    pub active_area: ActiveMenu,
     pub db: DB,
     pub activities: Vec<Activity>,
     pub activity_state: ActivityState,
@@ -28,7 +28,7 @@ impl Default for App {
         Self {
             running: true,
             active_tab: Tab::Activities,
-            active_area: ActiveArea::default(),
+            active_area: ActiveMenu::default(),
             db,
             activities,
             activity_state: ActivityState {
@@ -74,20 +74,15 @@ impl App {
     }
 }
 
+/// Describes which sub menu is currently active
 #[derive(PartialEq)]
-pub enum ActiveArea {
+pub enum ActiveMenu {
     Main,
     AddActivity,
 }
 
-impl Default for ActiveArea {
+impl Default for ActiveMenu {
     fn default() -> Self {
         Self::Main
     }
-}
-
-#[derive(Default)]
-pub struct ActivityState {
-    pub add: AddActivityState,
-    pub table: TableState,
 }

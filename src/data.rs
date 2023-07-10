@@ -5,6 +5,8 @@ use rusqlite::{
     Connection, ToSql,
 };
 
+use crate::app::AppResult;
+
 pub struct DB {
     con: Connection,
 }
@@ -38,7 +40,7 @@ impl DB {
         activities
     }
 
-    pub fn new_activity(&self, activity: Activity) -> Result<Activity, Box<dyn std::error::Error>> {
+    pub fn new_activity(&self, activity: Activity) -> AppResult<Activity> {
         self.con.execute(
             "INSERT INTO activity (name, color, symbol, has_exercises) VALUES (?1, ?2, ?3, ?4)",
             (
