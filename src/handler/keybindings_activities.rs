@@ -13,7 +13,7 @@ pub fn handler(key_event: KeyEvent, app: &mut App) -> AppResult<()> {
             handle_basic_keybindings(key_event, app)?;
             match key_event.code {
                 KeyCode::Char('a') => app.active_area = ActiveMenu::AddActivity,
-                KeyCode::Char('d') => app.remove_activity(),
+                KeyCode::Char('d') => app.active_area = ActiveMenu::DeleteActivity,
                 KeyCode::Down => app.select_activity(1),
                 KeyCode::Up => app.select_activity(-1),
                 _ => {}
@@ -52,13 +52,21 @@ pub fn handler(key_event: KeyEvent, app: &mut App) -> AppResult<()> {
                 _ => unimplemented!(),
             };
             match key_event.code {
-                KeyCode::Char('q') => app.active_area = ActiveMenu::Main,
-                KeyCode::Down => app.activity_state.add.move_up(),
+                KeyCode::Char('q') | KeyCode::Esc => app.active_area = ActiveMenu::Main,
+                KeyCode::Down | KeyCode::Tab => app.activity_state.add.move_up(),
                 KeyCode::Up => app.activity_state.add.move_down(),
                 KeyCode::Right | KeyCode::Left => {}
                 _ => {}
             }
         }
+        ActiveMenu::DeleteActivity => match key_event.code {
+            KeyCode::Char(c) => app.activity_state.delete_confirm.push(c),
+            KeyCode::Backspace => {
+                app.activity_state.delete_confirm.pop();
+            }
+            KeyCode::Esc => app.active_area = ActiveMenu::Main,
+            _ => {}
+        },
     }
     Ok(())
 }

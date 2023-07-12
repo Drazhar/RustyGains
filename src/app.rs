@@ -53,9 +53,9 @@ impl App {
         self.running = false;
     }
 
-    pub fn remove_activity(&mut self) {
+    pub fn delete_activity(&mut self) {
         let selected = self.activity_state.table.selected().unwrap();
-        self.db.remove_activity(self.activities[selected].id);
+        self.db.delete_activity(self.activities[selected].id);
         self.activities = self.db.get_activities();
         if selected > 0 {
             self.activity_state.table.select(Some(selected - 1));
@@ -79,6 +79,7 @@ impl App {
 pub enum ActiveMenu {
     Main,
     AddActivity,
+    DeleteActivity,
 }
 
 impl Default for ActiveMenu {

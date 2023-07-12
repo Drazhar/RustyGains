@@ -1,4 +1,5 @@
 pub mod add_activity_window;
+mod delete_activity_window;
 
 use tui::{
     backend::Backend,
@@ -16,31 +17,34 @@ use super::{basic_layout, render_tabs, AddActivityState};
 #[derive(Default)]
 pub struct ActivityState {
     pub add: AddActivityState,
+    pub delete_confirm: String,
     pub table: TableState,
 }
 
+/// Renders the activities menu into the specified frame.
 pub fn render<B: Backend>(app: &mut App, frame: &mut Frame<'_, B>) {
     let layout = basic_layout(frame);
 
     render_tabs(frame, app, layout[0]);
 
-    let mut table_rows = Vec::with_capacity(app.activities.len());
+    let mut activity_rows = Vec::with_capacity(app.activities.len());
 
     for a in app.activities.iter() {
-        table_rows.push(Row::new(vec![
+        activity_rows.push(Row::new(vec![
             Span::from(format!("{}", a.id)),
             Span::from(a.name.clone()),
             Span::styled("■", Style::new().fg(a.color.into())),
             Span::from(a.symbol.clone()),
             Span::from(match a.has_exercise {
-                true => "☒",
-                false => "☐",
+                true => "☒", // TODO: Nur Häkchen Symbol?
+                false => "",
             }),
         ]))
     }
 
+    // Render activity part
     frame.render_stateful_widget(
-        tui::widgets::Table::new(table_rows)
+        tui::widgets::Table::new(activity_rows)
             .header(
                 Row::new(vec!["ID", "Name", "Color", "Symbol", "Exercises"]).style(
                     Style::new()
@@ -73,6 +77,9 @@ pub fn render<B: Backend>(app: &mut App, frame: &mut Frame<'_, B>) {
         layout[1],
         &mut app.activity_state.table,
     );
+
+    // TODO:
+    // Render logged activities of the selected type
     frame.render_widget(
         tui::widgets::Paragraph::new("").block(
             Block::default()
@@ -83,7 +90,9 @@ pub fn render<B: Backend>(app: &mut App, frame: &mut Frame<'_, B>) {
         layout[2],
     );
 
-    if app.active_area == ActiveMenu::AddActivity {
-        add_activity_window::draw(frame, app);
+    match app.active_area {
+        ActiveMenu::AddActivity => add_activity_window::draw(frame, app),
+        ActiveMenu::DeleteActivity => delete_activity_window::draw(frame, app),
+        _ => {}
     }
 }

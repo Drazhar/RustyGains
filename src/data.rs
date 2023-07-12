@@ -65,7 +65,7 @@ impl DB {
         Ok(result)
     }
 
-    pub fn remove_activity(&self, id: u64) {
+    pub fn delete_activity(&self, id: u64) {
         self.con
             .execute("DELETE FROM activity WHERE id=?1", [id])
             .unwrap();

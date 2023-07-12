@@ -15,22 +15,24 @@ pub fn draw<B: Backend>(frame: &mut Frame<B>, app: &mut App) {
     let height = ADD_ACTIVITY_ROWS as u16 + 2;
     let overlay = floating_window::create(frame, width, height);
 
-    let mut lines = vec![
+    let state = &app.activity_state.add;
+    let activity = &state.activity;
+
+    let mut options = vec![
         Line::from(vec![
             Span::from("Name         "),
-            Span::from(String::from(&app.activity_state.add.activity.name)),
+            Span::from(String::from(&activity.name)),
         ]),
         Line::from(vec![
             Span::from("Color        "),
             Span::styled(
-                "■ ".to_owned()
-                    + std::convert::Into::<&str>::into(app.activity_state.add.activity.color),
-                Style::default().fg(app.activity_state.add.activity.color.into()),
+                "■ ".to_owned() + activity.color.into(),
+                Style::default().fg(activity.color.into()),
             ),
         ]),
         Line::from(vec![
             Span::from("Has exercise "),
-            Span::from(match app.activity_state.add.activity.has_exercise {
+            Span::from(match activity.has_exercise {
                 true => "☒",
                 false => "☐",
             }),
@@ -38,13 +40,12 @@ pub fn draw<B: Backend>(frame: &mut Frame<B>, app: &mut App) {
         Line::from("Save"),
     ];
 
-    if !lines.is_empty() {
-        lines[app.activity_state.add.selected].spans[0].style =
-            Style::default().fg(settings::HIGHLIGHT_COLOR);
+    if !options.is_empty() {
+        options[state.selected].spans[0].style = Style::default().fg(settings::HIGHLIGHT_COLOR);
     }
 
     frame.render_widget(
-        tui::widgets::Paragraph::new(lines).block(
+        tui::widgets::Paragraph::new(options).block(
             Block::default()
                 .title("Add new activity")
                 .borders(Borders::ALL)
