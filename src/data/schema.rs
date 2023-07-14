@@ -15,6 +15,7 @@ pub fn initialize(con: &Connection) {
         CREATE TABLE IF NOT EXISTS exercise (
             id          INTEGER PRIMARY KEY,
             name        TEXT NOT NULL,
+            color       TEXT NOT NULL,
             description TEXT
         );
 
@@ -22,6 +23,7 @@ pub fn initialize(con: &Connection) {
             id          INTEGER PRIMARY KEY,
             activity_id INTEGER NOT NULL,
             date        INTEGER NOT NULL,
+            intensity   INTEGER NOT NULL,
             comment     TEXT,
             FOREIGN KEY(activity_id) REFERENCES activity(id)
         );

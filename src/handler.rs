@@ -1,4 +1,6 @@
 mod keybindings_activities;
+mod keybindings_exercises;
+mod keybindings_overview;
 
 use crate::{
     app::{App, AppResult},
@@ -9,9 +11,9 @@ use crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
 /// Handles the key events and updates the state of [App].
 pub fn handle_key_events(key_event: KeyEvent, app: &mut App) -> AppResult<()> {
     match app.active_tab {
-        Tab::Overview => handle_overview_keybindings(key_event, app),
-        Tab::Exercises => handle_exercises_keybindings(key_event, app),
-        Tab::Workouts => handle_workouts_keybindings(key_event, app),
+        Tab::Overview => keybindings_overview::handler(key_event, app),
+        Tab::Exercises => keybindings_exercises::handler(key_event, app),
+        Tab::Workouts => handle_basic_keybindings(key_event, app),
         Tab::Activities => keybindings_activities::handler(key_event, app),
     }
     .unwrap();
@@ -34,34 +36,6 @@ fn handle_basic_keybindings(key_event: KeyEvent, app: &mut App) -> AppResult<()>
         }
         KeyCode::Right | KeyCode::Tab => app.active_tab.next(),
         KeyCode::Left => app.active_tab.prev(),
-        _ => {}
-    }
-    Ok(())
-}
-
-fn handle_overview_keybindings(key_event: KeyEvent, app: &mut App) -> AppResult<()> {
-    handle_basic_keybindings(key_event, app)?;
-    match key_event.code {
-        KeyCode::Char('a') => println!("Adding activity"),
-        KeyCode::Down => println!("runter"),
-        _ => {}
-    }
-    Ok(())
-}
-fn handle_exercises_keybindings(key_event: KeyEvent, app: &mut App) -> AppResult<()> {
-    handle_basic_keybindings(key_event, app)?;
-    match key_event.code {
-        KeyCode::Down => println!("runter"),
-        KeyCode::Up => println!("hoch"),
-        _ => {}
-    }
-    Ok(())
-}
-fn handle_workouts_keybindings(key_event: KeyEvent, app: &mut App) -> AppResult<()> {
-    handle_basic_keybindings(key_event, app)?;
-    match key_event.code {
-        KeyCode::Down => println!("runter"),
-        KeyCode::Up => println!("hoch"),
         _ => {}
     }
     Ok(())

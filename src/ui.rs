@@ -1,6 +1,7 @@
 mod activities;
-mod exercises;
+pub mod exercises;
 mod floating_window;
+pub mod log;
 mod overview;
 pub mod tabs;
 mod workouts;
@@ -8,7 +9,7 @@ mod workouts;
 pub use activities::add_activity_window::AddActivityState;
 pub use activities::ActivityState;
 
-use tui::{
+use ratatui::{
     backend::Backend,
     layout::{Constraint, Direction, Layout, Rect},
     style::{Color, Style},
@@ -20,7 +21,7 @@ use crate::{app::App, settings};
 
 use self::tabs::Tab;
 
-fn basic_layout<B: Backend>(frame: &mut Frame<B>) -> std::rc::Rc<[tui::layout::Rect]> {
+fn basic_layout<B: Backend>(frame: &mut Frame<B>) -> std::rc::Rc<[ratatui::layout::Rect]> {
     let layout = Layout::default()
         .direction(Direction::Vertical)
         .constraints(
@@ -38,7 +39,7 @@ fn basic_layout<B: Backend>(frame: &mut Frame<B>) -> std::rc::Rc<[tui::layout::R
 fn render_tabs<B: Backend>(frame: &mut Frame<B>, app: &App, area: Rect) {
     let tab_titles = Tab::line_vec();
     frame.render_widget(
-        tui::widgets::Tabs::new(tab_titles)
+        ratatui::widgets::Tabs::new(tab_titles)
             .block(
                 Block::default()
                     .borders(Borders::BOTTOM | Borders::LEFT | Borders::RIGHT)

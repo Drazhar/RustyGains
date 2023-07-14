@@ -1,5 +1,5 @@
 use chrono::{Datelike, Duration};
-use tui::{
+use ratatui::{
     style::Style,
     text::{Line, Span},
 };
@@ -59,7 +59,7 @@ pub fn create<'a>(total_width: usize) -> Vec<Line<'a>> {
     months.drain(months.len() - months_extra..months.len());
 
     let mut iso_week_line = Line::from(iso_weeks);
-    iso_week_line.spans[0].style = Style::default().fg(tui::style::Color::DarkGray);
+    iso_week_line.spans[0].style = Style::default().fg(ratatui::style::Color::DarkGray);
 
     let weekday = create_empty_weeks(["Mo", "Tu", "We", "Th", "Fr", "Sa", "Su"], width);
 

@@ -1,4 +1,4 @@
-use tui::{backend::Backend, layout::Rect, text::Line, Frame};
+use ratatui::{backend::Backend, layout::Rect, text::Line, Frame};
 
 pub fn create<B: Backend>(frame: &mut Frame<B>, mut width: u16, mut height: u16) -> Rect {
     let mut x = 0;
@@ -19,8 +19,11 @@ pub fn create<B: Backend>(frame: &mut Frame<B>, mut width: u16, mut height: u16)
     // Fill the layout with whitespace
     let overlay = Rect::new(x, y, width, height);
     frame.render_widget(
-        tui::widgets::Paragraph::new(vec![
-            Line::from(str::repeat(" ", width.try_into().unwrap()));
+        ratatui::widgets::Paragraph::new(vec![
+            Line::from(str::repeat(
+                " ",
+                width.try_into().unwrap()
+            ));
             height.try_into().unwrap()
         ]),
         overlay,

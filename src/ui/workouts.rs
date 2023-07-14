@@ -1,4 +1,4 @@
-use tui::{
+use ratatui::{
     backend::Backend,
     widgets::{Block, BorderType, Borders},
     Frame,
@@ -14,7 +14,7 @@ pub fn render<B: Backend>(app: &App, frame: &mut Frame<'_, B>) {
     render_tabs(frame, app, layout[0]);
 
     frame.render_widget(
-        tui::widgets::Paragraph::new("").block(
+        ratatui::widgets::Paragraph::new("").block(
             Block::default()
                 .title("Workouts")
                 .borders(Borders::ALL)
@@ -23,7 +23,7 @@ pub fn render<B: Backend>(app: &App, frame: &mut Frame<'_, B>) {
         layout[1],
     );
     frame.render_widget(
-        tui::widgets::Paragraph::new("").block(
+        ratatui::widgets::Paragraph::new("").block(
             Block::default()
                 .title("Logs")
                 .borders(Borders::ALL)

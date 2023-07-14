@@ -1,7 +1,7 @@
 pub mod add_activity_window;
 mod delete_activity_window;
 
-use tui::{
+use ratatui::{
     backend::Backend,
     layout::Constraint,
     style::{Modifier, Style},
@@ -10,15 +10,30 @@ use tui::{
     Frame,
 };
 
-use crate::app::{ActiveMenu, App};
+use crate::{
+    app::{App, Menu},
+    data::{activity::Activity, DB},
+};
 
 use super::{basic_layout, render_tabs, AddActivityState};
 
-#[derive(Default)]
 pub struct ActivityState {
+    pub activities: Vec<Activity>,
     pub add: AddActivityState,
     pub delete_confirm: String,
     pub table: TableState,
+}
+
+impl ActivityState {
+    pub fn new(db: &DB) -> Self {
+        let activities = db.get_activities();
+        Self {
+            activities,
+            add: AddActivityState::default(),
+            delete_confirm: String::default(),
+            table: TableState::default().with_selected(Some(0)),
+        }
+    }
 }
 
 /// Renders the activities menu into the specified frame.
@@ -27,9 +42,9 @@ pub fn render<B: Backend>(app: &mut App, frame: &mut Frame<'_, B>) {
 
     render_tabs(frame, app, layout[0]);
 
-    let mut activity_rows = Vec::with_capacity(app.activities.len());
+    let mut activity_rows = Vec::with_capacity(app.activity_state.activities.len());
 
-    for a in app.activities.iter() {
+    for a in app.activity_state.activities.iter() {
         activity_rows.push(Row::new(vec![
             Span::from(format!("{}", a.id)),
             Span::from(a.name.clone()),
@@ -44,23 +59,23 @@ pub fn render<B: Backend>(app: &mut App, frame: &mut Frame<'_, B>) {
 
     // Render activity part
     frame.render_stateful_widget(
-        tui::widgets::Table::new(activity_rows)
+        ratatui::widgets::Table::new(activity_rows)
             .header(
                 Row::new(vec!["ID", "Name", "Color", "Symbol", "Exercises"]).style(
                     Style::new()
-                        .fg(tui::style::Color::Yellow)
+                        .fg(ratatui::style::Color::Yellow)
                         .add_modifier(Modifier::BOLD | Modifier::UNDERLINED),
                 ),
             )
             .widths(&[
-                Constraint::Length(4),
+                Constraint::Length(3),
                 Constraint::Length(18),
-                Constraint::Length(7),
-                Constraint::Length(7),
+                Constraint::Length(5),
+                Constraint::Length(6),
                 Constraint::Length(14),
             ])
-            .highlight_style(if !app.activities.is_empty() {
-                Style::default().fg(app.activities
+            .highlight_style(if !app.activity_state.activities.is_empty() {
+                Style::default().fg(app.activity_state.activities
                     [app.activity_state.table.selected().unwrap_or(0)]
                 .color
                 .into())
@@ -81,7 +96,7 @@ pub fn render<B: Backend>(app: &mut App, frame: &mut Frame<'_, B>) {
     // TODO:
     // Render logged activities of the selected type
     frame.render_widget(
-        tui::widgets::Paragraph::new("").block(
+        ratatui::widgets::Paragraph::new("").block(
             Block::default()
                 .title("Logs")
                 .borders(Borders::ALL)
@@ -90,9 +105,9 @@ pub fn render<B: Backend>(app: &mut App, frame: &mut Frame<'_, B>) {
         layout[2],
     );
 
-    match app.active_area {
-        ActiveMenu::AddActivity => add_activity_window::draw(frame, app),
-        ActiveMenu::DeleteActivity => delete_activity_window::draw(frame, app),
+    match app.active_menu {
+        Menu::Add => add_activity_window::draw(frame, app),
+        Menu::Delete => delete_activity_window::draw(frame, app),
         _ => {}
     }
 }

@@ -1,11 +1,13 @@
+pub mod activity;
+pub mod color;
+pub mod exercise;
 mod schema;
 
-use rusqlite::{
-    types::{FromSql, FromSqlResult, ToSqlOutput, ValueRef},
-    Connection, ToSql,
-};
+use rusqlite::Connection;
 
 use crate::app::AppResult;
+
+use self::{activity::Activity, exercise::Exercise};
 
 pub struct DB {
     con: Connection,
@@ -40,7 +42,68 @@ impl DB {
         activities
     }
 
-    pub fn new_activity(&self, activity: Activity) -> AppResult<Activity> {
+    pub fn get_exercises(&self) -> Vec<Exercise> {
+        let mut stmt = self.con.prepare("SELECT * FROM exercise;").unwrap();
+
+        let exercises: Vec<Exercise> = stmt
+            .query_map([], |row| {
+                Ok(Exercise {
+                    id: row.get(0).unwrap(),
+                    name: row.get(1).unwrap(),
+                    color: row.get(2).unwrap(),
+                    description: row.get(3).unwrap(),
+                })
+            })
+            .unwrap()
+            .map(|e| e.unwrap())
+            .collect();
+
+        exercises
+    }
+
+    pub fn get_logs(&self) -> Vec<ActivityLog> {
+        let mut stmt = self
+            .con
+            .prepare(
+                "
+                SELECT
+                  activity_log.id, date, intensity, comment, activity.id,
+                  activity.name, activity.color, activity.symbol,
+                  activity.has_exercises  
+                FROM 
+                  activity_log
+                JOIN 
+                  activity
+                ON
+                  activity.id = activity_id
+                ;",
+            )
+            .unwrap();
+
+        let activity_logs: Vec<ActivityLog> = stmt
+            .query_map([], |row| {
+                Ok(ActivityLog {
+                    id: row.get(0).unwrap(),
+                    date: row.get(1).unwrap(),
+                    intensity: row.get(2).unwrap(),
+                    comment: row.get(3).unwrap(),
+                    activity: Activity {
+                        id: row.get(4).unwrap(),
+                        name: row.get(5).unwrap(),
+                        color: row.get(6).unwrap(),
+                        symbol: row.get(7).unwrap(),
+                        has_exercise: row.get(8).unwrap_or(false),
+                    },
+                })
+            })
+            .unwrap()
+            .map(|e| e.unwrap())
+            .collect();
+
+        activity_logs
+    }
+
+    pub fn new_activity(&self, activity: Activity) -> AppResult<()> {
         self.con.execute(
             "INSERT INTO activity (name, color, symbol, has_exercises) VALUES (?1, ?2, ?3, ?4)",
             (
@@ -50,19 +113,15 @@ impl DB {
                 activity.has_exercise,
             ),
         )?;
-        let inserted_id = self.con.last_insert_rowid();
-        let result =
-            self.con
-                .query_row("SELECT * FROM activity WHERE id=?1", [inserted_id], |row| {
-                    Ok(Activity {
-                        id: row.get(0).unwrap(),
-                        name: row.get(1).unwrap(),
-                        color: row.get(2).unwrap(),
-                        symbol: row.get(3).unwrap(),
-                        has_exercise: row.get(4).unwrap_or(false),
-                    })
-                })?;
-        Ok(result)
+        Ok(())
+    }
+
+    pub fn new_exercise(&self, exercise: Exercise) -> AppResult<()> {
+        self.con.execute(
+            "INSERT INTO exercise (name, color, description) VALUES (?1, ?2, ?3)",
+            (exercise.name, exercise.color, exercise.description),
+        )?;
+        Ok(())
     }
 
     pub fn delete_activity(&self, id: u64) {
@@ -70,93 +129,20 @@ impl DB {
             .execute("DELETE FROM activity WHERE id=?1", [id])
             .unwrap();
     }
-}
 
-#[derive(Debug, Default, Clone)]
-pub struct Activity {
-    pub id: u64,
-    pub name: String,
-    pub color: Color,
-    pub symbol: String,
-    pub has_exercise: bool,
-}
-
-impl Activity {
-    pub fn next_color(&mut self) {
-        match self.color {
-            Color::Red => self.color = Color::Blue,
-            Color::Blue => self.color = Color::Green,
-            Color::Green => self.color = Color::Yellow,
-            Color::Yellow => self.color = Color::Red,
-        }
-    }
-    pub fn prev_color(&mut self) {
-        match self.color {
-            Color::Red => self.color = Color::Yellow,
-            Color::Blue => self.color = Color::Red,
-            Color::Green => self.color = Color::Blue,
-            Color::Yellow => self.color = Color::Green,
-        }
+    pub fn delete_exercise(&self, id: u64) {
+        self.con
+            .execute("DELETE FROM exercise WHERE id=?1", [id])
+            .unwrap();
     }
 }
 
-#[derive(Debug, Clone, Copy)]
-pub enum Color {
-    Red,
-    Blue,
-    Green,
-    Yellow,
+pub struct ActivityLog {
+    id: usize,
+    activity: Activity,
+    date: u64,
+    intensity: u8,
+    comment: String,
 }
 
-impl Default for Color {
-    fn default() -> Self {
-        Self::Red
-    }
-}
-
-impl FromSql for Color {
-    fn column_result(value: ValueRef<'_>) -> FromSqlResult<Self> {
-        match value {
-            ValueRef::Text(c) => match c[0] {
-                b'b' => Ok(Self::Blue),
-                b'g' => Ok(Self::Green),
-                b'y' => Ok(Self::Yellow),
-                _ => Ok(Self::Red),
-            },
-            _ => Ok(Self::Red),
-        }
-    }
-}
-
-impl ToSql for Color {
-    fn to_sql(&self) -> rusqlite::Result<rusqlite::types::ToSqlOutput<'_>> {
-        match self {
-            Color::Red => Ok(ToSqlOutput::from("r")),
-            Color::Blue => Ok(ToSqlOutput::from("b")),
-            Color::Green => Ok(ToSqlOutput::from("g")),
-            Color::Yellow => Ok(ToSqlOutput::from("y")),
-        }
-    }
-}
-
-impl From<Color> for &str {
-    fn from(value: Color) -> Self {
-        match value {
-            Color::Red => "Red",
-            Color::Blue => "Blue",
-            Color::Green => "Green",
-            Color::Yellow => "Yellow",
-        }
-    }
-}
-
-impl From<Color> for tui::style::Color {
-    fn from(value: Color) -> Self {
-        match value {
-            Color::Red => tui::style::Color::Red,
-            Color::Blue => tui::style::Color::Blue,
-            Color::Green => tui::style::Color::Green,
-            Color::Yellow => tui::style::Color::Yellow,
-        }
-    }
-}
+pub struct Log {}

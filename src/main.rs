@@ -1,10 +1,10 @@
+use ratatui::backend::CrosstermBackend;
+use ratatui::Terminal;
 use rusty_gains::app::{App, AppResult};
 use rusty_gains::event::{Event, EventHandler};
 use rusty_gains::handler::handle_key_events;
 use rusty_gains::tui::Tui;
 use std::io;
-use tui::backend::CrosstermBackend;
-use tui::Terminal;
 
 fn main() -> AppResult<()> {
     // Create an application.

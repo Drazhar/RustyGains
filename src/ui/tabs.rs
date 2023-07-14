@@ -1,4 +1,4 @@
-use tui::text::Line;
+use ratatui::text::Line;
 
 // WARN: Every enum has to be added to the "line_vec" function!
 pub enum Tab {
@@ -8,12 +8,18 @@ pub enum Tab {
     Activities,
 }
 
+impl Default for Tab {
+    fn default() -> Self {
+        Self::Overview
+    }
+}
+
 impl Tab {
     pub fn line_vec() -> Vec<Line<'static>> {
         ["Overview", "Exercises", "Workouts", "Activities"]
             .iter()
             .cloned()
-            .map(tui::text::Line::from)
+            .map(ratatui::text::Line::from)
             .collect()
     }
 

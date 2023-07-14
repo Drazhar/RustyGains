@@ -6,36 +6,33 @@ use ratatui::{
     Frame,
 };
 
-use crate::{app::App, data::activity::Activity, settings, ui::floating_window};
+use crate::{app::App, data::exercise::Exercise, settings, ui::floating_window};
 
-const ADD_ACTIVITY_ROWS: usize = 4;
+const ADD_EXERCISE_ROWS: usize = 4;
 
 pub fn draw<B: Backend>(frame: &mut Frame<B>, app: &mut App) {
     let width = 60;
-    let height = ADD_ACTIVITY_ROWS as u16 + 2;
+    let height = ADD_EXERCISE_ROWS as u16 + 2;
     let overlay = floating_window::create(frame, width, height);
 
-    let state = &app.activity_state.add;
-    let activity = &state.activity;
+    let state = &app.exercise_state.add;
+    let exercise = &state.exercise;
 
     let mut options = vec![
         Line::from(vec![
             Span::from("Name         "),
-            Span::from(String::from(&activity.name)),
+            Span::from(String::from(&exercise.name)),
         ]),
         Line::from(vec![
             Span::from("Color        "),
             Span::styled(
-                "■ ".to_owned() + activity.color.into(),
-                Style::default().fg(activity.color.into()),
+                "■ ".to_owned() + exercise.color.into(),
+                Style::default().fg(exercise.color.into()),
             ),
         ]),
         Line::from(vec![
-            Span::from("Has exercise "),
-            Span::from(match activity.has_exercise {
-                true => "☒",
-                false => "☐",
-            }),
+            Span::from("Description  "),
+            Span::from(exercise.description_tail(width as usize - 15)),
         ]),
         Line::from("Save"),
     ];
@@ -57,14 +54,14 @@ pub fn draw<B: Backend>(frame: &mut Frame<B>, app: &mut App) {
 }
 
 #[derive(Default)]
-pub struct AddActivityState {
+pub struct AddExerciseState {
     selected: usize,
-    pub activity: Activity,
+    pub exercise: Exercise,
 }
 
-impl AddActivityState {
+impl AddExerciseState {
     pub fn move_up(&mut self) {
-        if self.selected == ADD_ACTIVITY_ROWS - 1 {
+        if self.selected == ADD_EXERCISE_ROWS - 1 {
             self.selected = 0;
         } else {
             self.selected += 1;
@@ -72,7 +69,7 @@ impl AddActivityState {
     }
     pub fn move_down(&mut self) {
         if self.selected == 0 {
-            self.selected = ADD_ACTIVITY_ROWS - 1;
+            self.selected = ADD_EXERCISE_ROWS - 1;
         } else {
             self.selected -= 1;
         }

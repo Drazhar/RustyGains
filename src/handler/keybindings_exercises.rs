@@ -2,7 +2,7 @@ use crossterm::event::{KeyCode, KeyEvent};
 
 use crate::{
     app::{App, AppResult, Menu},
-    data::activity::Activity,
+    data::exercise::Exercise,
 };
 
 use super::handle_basic_keybindings;
@@ -14,57 +14,59 @@ pub fn handler(key_event: KeyEvent, app: &mut App) -> AppResult<()> {
             match key_event.code {
                 KeyCode::Char('a') => app.active_menu = Menu::Add,
                 KeyCode::Char('d') => app.active_menu = Menu::Delete,
-                KeyCode::Down => app.select_activity(1),
-                KeyCode::Up => app.select_activity(-1),
+                KeyCode::Down => app.select_exercise(1),
+                KeyCode::Up => app.select_exercise(-1),
                 _ => {}
             }
         }
         Menu::Add => {
-            match app.activity_state.add.selected() {
+            match app.exercise_state.add.selected() {
                 0 => match key_event.code {
-                    KeyCode::Char(c) => app.activity_state.add.activity.name.push(c),
+                    KeyCode::Char(c) => app.exercise_state.add.exercise.name.push(c),
                     KeyCode::Backspace => {
-                        app.activity_state.add.activity.name.pop();
+                        app.exercise_state.add.exercise.name.pop();
                     }
                     _ => {}
                 },
                 1 => match key_event.code {
-                    KeyCode::Right => app.activity_state.add.activity.color.next(),
-                    KeyCode::Left => app.activity_state.add.activity.color.prev(),
+                    KeyCode::Right => app.exercise_state.add.exercise.color.next(),
+                    KeyCode::Left => app.exercise_state.add.exercise.color.prev(),
                     _ => {}
                 },
                 2 => match key_event.code {
-                    KeyCode::Right | KeyCode::Left | KeyCode::Enter => {
-                        app.activity_state.add.activity.has_exercise =
-                            !app.activity_state.add.activity.has_exercise;
+                    KeyCode::Char(c) => app.exercise_state.add.exercise.description.push(c),
+                    KeyCode::Backspace => {
+                        app.exercise_state.add.exercise.description.pop();
                     }
                     _ => {}
                 },
                 3 => {
                     if key_event.code == KeyCode::Enter {
                         app.db
-                            .new_activity(app.activity_state.add.activity.clone())
+                            .new_exercise(app.exercise_state.add.exercise.clone())
                             .unwrap();
-                        app.activity_state.activities = app.db.get_activities();
+                        app.exercise_state.exercises = app.db.get_exercises();
                         app.active_menu = Menu::Main;
-                        app.activity_state.add.activity = Activity::default();
-                        app.activity_state.add.select_top();
+                        app.exercise_state.add.exercise = Exercise::default();
+                        app.exercise_state.add.select_top();
                     }
                 }
-                _ => unimplemented!(),
+                _ => {
+                    unimplemented!();
+                }
             };
             match key_event.code {
                 KeyCode::Char('q') | KeyCode::Esc => app.active_menu = Menu::Main,
-                KeyCode::Down | KeyCode::Tab => app.activity_state.add.move_up(),
-                KeyCode::Up => app.activity_state.add.move_down(),
+                KeyCode::Down | KeyCode::Tab => app.exercise_state.add.move_up(),
+                KeyCode::Up => app.exercise_state.add.move_down(),
                 KeyCode::Right | KeyCode::Left => {}
                 _ => {}
             }
         }
         Menu::Delete => match key_event.code {
-            KeyCode::Char(c) => app.activity_state.delete_confirm.push(c),
+            KeyCode::Char(c) => app.exercise_state.delete_confirm.push(c),
             KeyCode::Backspace => {
-                app.activity_state.delete_confirm.pop();
+                app.exercise_state.delete_confirm.pop();
             }
             KeyCode::Esc => app.active_menu = Menu::Main,
             _ => {}
