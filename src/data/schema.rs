@@ -31,14 +31,13 @@ pub fn initialize(con: &Connection) {
         CREATE TABLE IF NOT EXISTS exercise_log (
             id           INTEGER PRIMARY KEY,
             exercise_id  INTEGER NOT NULL,
-            activity_id  INTEGER NOT NULL,
+            activity_log_id  INTEGER NOT NULL,
             reps         TEXT,
-            weight       TEXT,
-            break        INTEGER,
+            weight       REAL,
+            break        REAL,
             effort       INTEGER,
-            comment      TEXT,
             FOREIGN KEY(exercise_id) REFERENCES exercise(id),
-            FOREIGN KEY(activity_id) REFERENCES activity_log(id)
+            FOREIGN KEY(activity_log_id) REFERENCES activity_log(id)
         );
 
         CREATE TABLE IF NOT EXISTS workout (

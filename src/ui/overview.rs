@@ -1,3 +1,6 @@
+use chrono::Datelike;
+use chrono::NaiveDateTime;
+use chrono::Timelike;
 use ratatui::symbols::Marker;
 use ratatui::widgets::GraphType;
 use ratatui::widgets::Row;
@@ -12,7 +15,10 @@ use ratatui::{
 };
 
 use crate::app::{App, Menu};
+use crate::settings::HIGHLIGHT_COLOR;
 
+use super::log::LogArea;
+use super::log::TimeSelection;
 use super::{basic_layout, render_tabs};
 
 pub fn render<B: Backend>(app: &mut App, frame: &mut Frame<'_, B>) {
@@ -48,14 +54,76 @@ pub fn render<B: Backend>(app: &mut App, frame: &mut Frame<'_, B>) {
 
 fn render_logging<B: Backend>(app: &mut App, frame: &mut Frame<'_, B>) {
     let activities = &app.activity_state.activities;
+    let selected_activity = &activities[app.log_state.selected_activity];
 
-    let activity_menu = vec![
-        Line::from("Activity:  ← Bla →"),
-        Line::from("Date:      12.05.2015"),
-        Line::from("Intensity: 4"),
-        Line::from("Comment:   blablabl"),
-        Line::from("           asdfasdfasdfasdf"),
+    let highlight_style = Style::default().fg(selected_activity.color.into());
+
+    let width = 50;
+    let multiline_comment = if app.log_state.comment.len() > width {
+        app.log_state.comment.split_at(width)
+    } else {
+        (app.log_state.comment.as_str(), "")
+    };
+
+    let mut activity_menu = vec![
+        Line::from(vec![
+            Span::from("Activity:  "),
+            Span::from(selected_activity.name.clone()),
+        ]),
+        Line::from(vec![
+            Span::from("Date:      "),
+            Span::from(format!("{:02}", app.log_state.date.day())),
+            Span::from("."),
+            Span::from(format!("{:02}", app.log_state.date.month())),
+            Span::from("."),
+            Span::from(format!("{}", app.log_state.date.year())),
+            Span::from(" - "),
+            Span::from(format!("{}", app.log_state.date.hour())),
+            Span::from("h"),
+        ]),
+        Line::from(vec![
+            Span::from("Intensity: "),
+            Span::from(format!("{}", app.log_state.intensity)),
+        ]),
+        Line::from(format!("Comment:   {}", multiline_comment.0)),
+        Line::from(format!("           {}", multiline_comment.1)),
     ];
+
+    if app.log_state.active_area == LogArea::Activity {
+        activity_menu[app.log_state.selected_activity_row].spans[0].style = highlight_style;
+
+        let row = &app.log_state.selected_activity_row;
+        match *row {
+            0 => {
+                activity_menu[*row].spans.insert(
+                    1,
+                    Span::styled("← ", highlight_style.add_modifier(Modifier::DIM)),
+                );
+                activity_menu[*row].spans[2].style = highlight_style;
+                activity_menu[*row].spans.insert(
+                    3,
+                    Span::styled(" →", highlight_style.add_modifier(Modifier::DIM)),
+                );
+            }
+            1 => {
+                let highlight_index = match app.log_state.selected_time {
+                    TimeSelection::Day => 1,
+                    TimeSelection::Month => 3,
+                    TimeSelection::Year => 5,
+                    TimeSelection::Hour => 7,
+                };
+
+                activity_menu[*row].spans[highlight_index].style = highlight_style;
+            }
+            2 => {
+                activity_menu[*row].spans[1].style = highlight_style;
+            }
+            3 => {
+                activity_menu[*row + 1].spans[0].style = highlight_style;
+            }
+            _ => {}
+        }
+    }
 
     let stopwatch = vec![
         Line::from("51:23    0000  1111      2222   3333 "),
@@ -65,24 +133,62 @@ fn render_logging<B: Backend>(app: &mut App, frame: &mut Frame<'_, B>) {
         Line::from("01:50    0000  111111   222222  3333"),
     ];
 
-    let exercises = vec![
-        Line::from("Klimmzüge  5kg  3min"),
-        Line::from("  5,5,5,5,5"),
-        Line::from("  C: Hart heute"),
-        Line::from(""),
-        Line::from("Liegestütz  0kg  2min"),
-        Line::from("  14,14,14"),
-        Line::from("  C: Mittel"),
-        Line::from(""),
-        Line::from("Hängen  7.5kg  3min"),
-        Line::from("  10,10,10,10,10"),
-        Line::from("  C: Mittel"),
-        Line::from(""),
-        Line::from(Span::styled(
-            "<Add>",
+    let mut exercise_list = Vec::with_capacity(app.log_state.exercises.len() * 4 + 2);
+    for exercise in &app.log_state.exercises {
+        exercise_list.push(Line::from(vec![
+            Span::from(exercise.exercise.name.clone()),
+            Span::from(format!(" {:.1}kg", exercise.weight)),
+            Span::from(format!(" {:.1}min", exercise.breaks)),
+        ]));
+
+        let mut rep_text = Vec::with_capacity(exercise.reps.len() + 2);
+        rep_text.push(Span::from("  "));
+        for r in &exercise.reps {
+            rep_text.push(Span::from(format!("{},", r)));
+        }
+        rep_text.push(Span::styled(
+            " +set",
             Style::default().add_modifier(Modifier::DIM),
-        )),
-    ];
+        ));
+        exercise_list.push(Line::from(rep_text));
+
+        exercise_list.push(Line::from(vec![
+            Span::from("  I"),
+            Span::from(format!("{}", exercise.effort)),
+        ]));
+        exercise_list.push(Line::from(""));
+    }
+    exercise_list.push(Line::from(Span::styled(
+        "<Add exercise>",
+        Style::default().add_modifier(Modifier::DIM),
+    )));
+
+    if app.log_state.active_area == LogArea::Exercise {
+        // Highlight selection
+        let exercise_number = app.log_state.exercise_selection.exercise_number;
+        let adjusted_index = exercise_number * 4;
+        if exercise_number < app.log_state.exercises.len() {
+            match app.log_state.exercise_selection.element {
+                super::log::ExerciseElement::Name => {
+                    exercise_list[adjusted_index].spans[0].style = highlight_style
+                }
+                super::log::ExerciseElement::Weight => {
+                    exercise_list[adjusted_index].spans[1].style = highlight_style
+                }
+                super::log::ExerciseElement::Break => {
+                    exercise_list[adjusted_index].spans[2].style = highlight_style
+                }
+                super::log::ExerciseElement::Set(i) => {
+                    exercise_list[adjusted_index + 1].spans[i + 1].style = highlight_style
+                }
+                super::log::ExerciseElement::Intensity => {
+                    exercise_list[adjusted_index + 2].spans[1].style = highlight_style
+                }
+            }
+        } else {
+            exercise_list[adjusted_index].spans[0].style = highlight_style;
+        }
+    }
 
     let layout = Layout::default()
         .direction(Direction::Vertical)
@@ -104,15 +210,18 @@ fn render_logging<B: Backend>(app: &mut App, frame: &mut Frame<'_, B>) {
         .constraints([Constraint::Percentage(50), Constraint::Percentage(50)].as_ref())
         .split(lower_layout[1]);
 
+    let mut activity_block = ratatui::widgets::Block::default()
+        .title("Activity | Workout")
+        .borders(Borders::ALL)
+        .border_type(BorderType::Rounded);
+    if app.log_state.active_area == LogArea::Activity {
+        activity_block = activity_block.border_style(Style::default().fg(HIGHLIGHT_COLOR));
+    }
     frame.render_widget(
-        Paragraph::new(activity_menu).block(
-            ratatui::widgets::Block::default()
-                .title("Activity | Workout")
-                .borders(Borders::ALL)
-                .border_type(BorderType::Rounded),
-        ),
+        Paragraph::new(activity_menu).block(activity_block),
         upper_layout[0],
     );
+
     frame.render_widget(
         Paragraph::new(stopwatch).block(
             ratatui::widgets::Block::default()
@@ -122,17 +231,20 @@ fn render_logging<B: Backend>(app: &mut App, frame: &mut Frame<'_, B>) {
         ),
         upper_layout[1],
     );
+
+    let mut exercise_block = ratatui::widgets::Block::default()
+        .title("Exercises")
+        .borders(Borders::ALL)
+        .border_type(BorderType::Rounded);
+    if app.log_state.active_area == LogArea::Exercise {
+        exercise_block = exercise_block.border_style(Style::default().fg(HIGHLIGHT_COLOR));
+    }
     frame.render_widget(
-        Paragraph::new(exercises).block(
-            ratatui::widgets::Block::default()
-                .title("Exercises")
-                .borders(Borders::ALL)
-                .border_type(BorderType::Rounded),
-        ),
+        Paragraph::new(exercise_list).block(exercise_block),
         lower_layout[0],
     );
 
-    let data: [(f64, f64); 5] = [(0.0, 0.0), (1.0, 1.0), (2.0, 2.0), (3.0, 3.0), (4.0, 4.0)];
+    let data: [(f64, f64); 5] = [(0.0, 0.0), (1.0, 4.0), (2.0, 0.8), (3.0, 0.8), (4.0, 4.0)];
     let datasets = vec![Dataset::default()
         .name("data")
         .graph_type(GraphType::Line)
@@ -141,7 +253,11 @@ fn render_logging<B: Backend>(app: &mut App, frame: &mut Frame<'_, B>) {
         .data(&data)];
 
     let chart = Chart::new(datasets)
-        .block(Block::default().title("Chart 1").borders(Borders::ALL))
+        .block(
+            Block::default()
+                .borders(Borders::ALL)
+                .border_type(BorderType::Rounded),
+        )
         .x_axis(
             Axis::default()
                 .bounds([0.0, 4.0])
@@ -156,44 +272,113 @@ fn render_logging<B: Backend>(app: &mut App, frame: &mut Frame<'_, B>) {
         );
     frame.render_widget(chart, lower_layout_right[0]);
 
-    frame.render_stateful_widget(
-        Table::new(vec![Row::new(vec![
-            Span::from("12.03.45"),
-            Span::from("7.5 kg"),
-            Span::from("3:00"),
-            Span::from("4x5,4"),
-            Span::from("9"),
-            Span::from("Grenzwertig"),
-        ])])
-        .header(
-            Row::new(vec!["Date", "Weight", "Break", "Sets", "Eff.", "Comment"]).style(
-                Style::new()
-                    .fg(ratatui::style::Color::Yellow)
-                    .add_modifier(Modifier::BOLD | Modifier::UNDERLINED),
-            ),
-        )
-        .widths(&[
+    let history_title = match app.log_state.active_area {
+        LogArea::Activity => "Activities",
+        LogArea::Exercise => "Exercises",
+    };
+
+    let history_headers = match app.log_state.active_area {
+        LogArea::Activity => vec!["Date", "Activity", "Intensity", "Comment"],
+        LogArea::Exercise => vec!["Date", "Weight", "Break", "Sets", "Eff.", "Comment"],
+    };
+
+    let history_widths = match app.log_state.active_area {
+        LogArea::Activity => vec![
+            Constraint::Length(14),
+            Constraint::Length(10),
+            Constraint::Length(9),
+            Constraint::Percentage(100),
+        ],
+        LogArea::Exercise => vec![
             Constraint::Length(8),
             Constraint::Length(6),
             Constraint::Length(5),
-            Constraint::Length(10),
+            Constraint::Length(14),
             Constraint::Length(5),
             Constraint::Percentage(100),
-        ])
-        .highlight_style(if !app.activity_state.activities.is_empty() {
-            Style::default().fg(app.activity_state.activities
-                [app.activity_state.table.selected().unwrap_or(0)]
-            .color
-            .into())
-        } else {
-            Style::default()
-        })
-        .block(
-            Block::default()
-                .title("Activities")
-                .borders(Borders::ALL)
-                .border_type(BorderType::Rounded),
-        ),
+        ],
+    };
+
+    let history_entries = match app.log_state.active_area {
+        LogArea::Activity => {
+            let activities = app.db.get_activity_log(&selected_activity.name);
+            let mut result = Vec::with_capacity(activities.len());
+            for a in activities {
+                let date = NaiveDateTime::from_timestamp_millis(a.date as i64 * 1000).unwrap();
+                result.push(Row::new(vec![
+                    Span::from(format!(
+                        "{:02}.{:02}.{} {:02}h",
+                        date.day(),
+                        date.month(),
+                        date.year(),
+                        date.hour()
+                    )),
+                    Span::from(a.activity.name.clone()),
+                    Span::from(format!("{}", a.intensity)),
+                    Span::from(a.comment),
+                ]));
+            }
+            result
+        }
+        LogArea::Exercise => {
+            if !app.log_state.exercises.is_empty()
+                && app.log_state.exercise_selection.exercise_number < app.log_state.exercises.len()
+            {
+                let exercise_history = app.db.get_exercise_history(
+                    app.log_state.exercises[app.log_state.exercise_selection.exercise_number]
+                        .exercise
+                        .id,
+                );
+                let mut result = Vec::with_capacity(exercise_history.len());
+
+                for h in exercise_history {
+                    result.push(Row::new(vec![
+                        Span::from(format!(
+                            "{:02}.{:02}.{} {:02}h",
+                            h.date.day(),
+                            h.date.month(),
+                            h.date.year(),
+                            h.date.hour()
+                        )),
+                        Span::from(format!("{}", h.weight)),
+                        Span::from(format!("{}", h.breaks)),
+                        Span::from(format!("{:?}", h.reps)),
+                        Span::from(format!("{}", h.effort)),
+                        Span::from(h.comment),
+                    ]))
+                }
+
+                result
+            } else {
+                vec![]
+            }
+        }
+    };
+
+    frame.render_stateful_widget(
+        Table::new(history_entries)
+            .header(
+                Row::new(history_headers).style(
+                    Style::new()
+                        .fg(ratatui::style::Color::Yellow)
+                        .add_modifier(Modifier::BOLD | Modifier::UNDERLINED),
+                ),
+            )
+            .widths(&history_widths)
+            .highlight_style(if !app.activity_state.activities.is_empty() {
+                Style::default().fg(app.activity_state.activities
+                    [app.activity_state.table.selected().unwrap_or(0)]
+                .color
+                .into())
+            } else {
+                Style::default()
+            })
+            .block(
+                Block::default()
+                    .title(history_title)
+                    .borders(Borders::ALL)
+                    .border_type(BorderType::Rounded),
+            ),
         lower_layout_right[1],
         &mut app.activity_state.table,
     );

@@ -3,9 +3,11 @@ pub mod color;
 pub mod exercise;
 mod schema;
 
+
+use chrono::NaiveDateTime;
 use rusqlite::Connection;
 
-use crate::app::AppResult;
+use crate::{app::{AppResult, App}, ui::log::ExerciseLog};
 
 use self::{activity::Activity, exercise::Exercise};
 
@@ -61,7 +63,57 @@ impl DB {
         exercises
     }
 
-    pub fn get_logs(&self) -> Vec<ActivityLog> {
+    pub fn get_last_exercise_log(&self) -> AppResult<ExerciseLog> {
+        Ok(self.con
+            .query_row("SELECT exercise_id, exercise.name, exercise.color, exercise.description, weight, break, reps, effort FROM exercise_log JOIN exercise ON exercise_id = exercise.id;", [], |row| {
+                let splitted = text_to_vec(row.get(6)?);
+                
+                Ok(ExerciseLog {
+                    exercise: Exercise {
+                         id: row.get(0)?,
+                         name: row.get(1)?,
+                         color: row.get(2)?,
+                         description: row.get(3)?
+                    },
+                    weight: row.get(4)?,
+                    breaks: row.get(5)?,
+                    reps: splitted,
+                    effort: row.get(7)?,
+                })
+            })
+            ?)
+    }
+
+    pub fn get_exercise_history(&self, id: u64) -> Vec<ExerciseHistory> {
+        let mut stmt = self.con.prepare("
+                SELECT
+                  activity_log.date, weight, break, reps, effort, comment
+                FROM
+                  exercise_log
+                JOIN
+                  activity_log
+                ON
+                  activity_log.id = activity_log_id
+                WHERE
+                  exercise_id = ?1
+                ORDER BY
+                  date DESC
+            ").unwrap();
+
+        stmt.query_map([id], |row| {
+        let reps = text_to_vec(row.get(3)?);
+        let timestamp: i64 = row.get(0)?;
+            Ok(ExerciseHistory{ 
+                date: NaiveDateTime::from_timestamp_millis(timestamp * 1000).unwrap(),
+                weight: row.get(1)?,
+                breaks: row.get(2)?,
+                reps,
+                effort: row.get(4)?,
+                comment: row.get(5)?
+            })}).unwrap().map(|e| e.unwrap()).collect()
+    }
+    
+    pub fn get_activity_log(&self, activity_name: &str) -> Vec<ActivityLog> {
         let mut stmt = self
             .con
             .prepare(
@@ -76,12 +128,16 @@ impl DB {
                   activity
                 ON
                   activity.id = activity_id
+                WHERE
+                  activity.name = ?1
+                ORDER BY
+                  date DESC
                 ;",
             )
             .unwrap();
 
         let activity_logs: Vec<ActivityLog> = stmt
-            .query_map([], |row| {
+            .query_map([activity_name], |row| {
                 Ok(ActivityLog {
                     id: row.get(0).unwrap(),
                     date: row.get(1).unwrap(),
@@ -135,14 +191,37 @@ impl DB {
             .execute("DELETE FROM exercise WHERE id=?1", [id])
             .unwrap();
     }
+
+    pub fn save_log(&self, log: &App) {
+    self.con.execute(
+            "INSERT INTO activity_log (activity_id, date, intensity, comment) VALUES (?1, ?2, ?3, ?4)",
+            (log.activity_state.activities[log.log_state.selected_activity].id, log.log_state.date.timestamp(), log.log_state.intensity, log.log_state.comment.clone())).unwrap();
+        
+    }
+}
+
+fn text_to_vec<T>(inp: String) -> Vec<T>
+where
+    T: std::fmt::Debug + std::str::FromStr,
+    <T as std::str::FromStr>::Err: std::fmt::Debug
+{
+    let splitted: Vec<T> = inp.split(',').map(|e| e.parse().unwrap()).collect();
+    splitted
 }
 
 pub struct ActivityLog {
-    id: usize,
-    activity: Activity,
-    date: u64,
-    intensity: u8,
-    comment: String,
+    pub id: usize,
+    pub activity: Activity,
+    pub date: u64,
+    pub intensity: u8,
+    pub comment: String,
 }
 
-pub struct Log {}
+pub struct ExerciseHistory {
+    pub date: NaiveDateTime,
+    pub weight: f64,
+    pub breaks: f64,
+    pub reps: Vec<u8>,
+    pub effort: u8,
+    pub comment: String
+}

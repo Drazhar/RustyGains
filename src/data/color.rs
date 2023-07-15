@@ -3,7 +3,7 @@ use rusqlite::{
     ToSql,
 };
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, PartialEq)]
 pub enum Color {
     Red,
     Blue,

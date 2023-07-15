@@ -29,7 +29,7 @@ impl Default for App {
             active_menu: Menu::default(),
             activity_state: ActivityState::new(&db),
             exercise_state: ExerciseState::new(&db),
-            log_state: LogState::new(&db),
+            log_state: LogState::default(),
             db,
         }
     }
@@ -97,6 +97,28 @@ impl App {
         } else if offset < 0 && selected > 0 {
             table.select(Some(selected - 1));
         }
+    }
+
+    pub fn select_log_activity(&mut self, offset: isize) {
+        let selected = &mut self.log_state.selected_activity;
+        let activities = &self.activity_state.activities;
+
+        if offset > 0 {
+            if *selected == activities.len() - 1 {
+                *selected = 0;
+            } else {
+                *selected += 1;
+            }
+        } else if *selected == 0 {
+            *selected = activities.len() - 1;
+        } else {
+            *selected -= 1;
+        }
+    }
+
+    pub fn save_log(&mut self) {
+        self.db.save_log(self);
+        self.active_menu = Menu::Main;
     }
 }
 

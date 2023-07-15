@@ -1,6 +1,6 @@
 use super::color::Color;
 
-#[derive(Debug, Default, Clone)]
+#[derive(Debug, Default, Clone, PartialEq)]
 pub struct Exercise {
     pub id: u64,
     pub name: String,
