@@ -33,14 +33,7 @@ pub fn handler(key_event: KeyEvent, app: &mut App) -> AppResult<()> {
                     KeyCode::Left => app.activity_state.add.activity.color.prev(),
                     _ => {}
                 },
-                2 => match key_event.code {
-                    KeyCode::Right | KeyCode::Left | KeyCode::Enter => {
-                        app.activity_state.add.activity.has_exercise =
-                            !app.activity_state.add.activity.has_exercise;
-                    }
-                    _ => {}
-                },
-                3 => {
+                2 => {
                     if key_event.code == KeyCode::Enter {
                         app.db
                             .new_activity(app.activity_state.add.activity.clone())

@@ -1,4 +1,4 @@
-use chrono::{DateTime, Duration, Local, Months};
+use chrono::{DateTime, Duration, Local, Months, NaiveDateTime};
 
 use crate::data::{exercise::Exercise, DB};
 
@@ -12,6 +12,50 @@ pub struct LogState {
     pub comment: String,
     pub exercises: Vec<ExerciseLog>,
     pub exercise_selection: ExerciseSelection,
+    pub timer: Timer,
+}
+
+#[derive(Default)]
+pub struct Timer {
+    started: bool,
+    start_time: NaiveDateTime,
+    break_time: NaiveDateTime,
+}
+
+impl Timer {
+    pub fn is_started(&self) -> bool {
+        self.started
+    }
+
+    pub fn toggle(&mut self) {
+        if !self.started {
+            self.start_time = chrono::Local::now().naive_local();
+            self.break_time = self.start_time;
+        }
+        self.started = !self.started;
+    }
+
+    pub fn round(&mut self) {
+        if self.started {
+            self.break_time = chrono::Local::now().naive_local();
+        }
+    }
+
+    pub fn get_elapsed(&self) -> Duration {
+        if !self.started {
+            return Duration::hours(0);
+        }
+        let now = chrono::Local::now().naive_local();
+        now - self.start_time
+    }
+
+    pub fn get_round(&self) -> Duration {
+        if !self.started {
+            return Duration::hours(0);
+        }
+        let now = chrono::Local::now().naive_local();
+        now - self.break_time
+    }
 }
 
 pub struct ExerciseSelection {
@@ -42,6 +86,7 @@ impl Default for LogState {
                 exercise_number: 0,
                 element: ExerciseElement::Name,
             },
+            timer: Timer::default(),
         }
     }
 }
@@ -82,7 +127,7 @@ impl LogState {
     }
 
     pub fn increase_intensity(&mut self) {
-        if self.intensity < 9 {
+        if self.intensity < 3 {
             self.intensity += 1;
         }
     }
@@ -264,6 +309,7 @@ impl TimeSelection {
     }
 }
 
+#[derive(Default)]
 pub struct ExerciseLog {
     pub exercise: Exercise,
     pub weight: f64,
@@ -274,6 +320,9 @@ pub struct ExerciseLog {
 
 impl ExerciseLog {
     pub fn new(db: &DB) -> Self {
-        db.get_last_exercise_log().unwrap()
+        match db.get_last_exercise_log() {
+            Ok(ex) => ex,
+            Err(_) => Self::default(),
+        }
     }
 }

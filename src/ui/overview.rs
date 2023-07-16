@@ -1,3 +1,5 @@
+mod big_nums;
+
 use chrono::Datelike;
 use chrono::NaiveDateTime;
 use chrono::Timelike;
@@ -17,6 +19,8 @@ use ratatui::{
 use crate::app::{App, Menu};
 use crate::settings::HIGHLIGHT_COLOR;
 
+use self::big_nums::big_nums;
+
 use super::log::LogArea;
 use super::log::TimeSelection;
 use super::{basic_layout, render_tabs};
@@ -31,8 +35,10 @@ pub fn render<B: Backend>(app: &mut App, frame: &mut Frame<'_, B>) {
 
         let heatmap_width: usize = (layout[1].width - 4).into();
 
+        let activity_log = app.db.get_activity_log(None);
+
         frame.render_widget(
-            ratatui::widgets::Paragraph::new(crate::heatmap::create(heatmap_width)).block(
+            ratatui::widgets::Paragraph::new(crate::heatmap::create(heatmap_width, &app.db)).block(
                 Block::default()
                     .title("Heatmap")
                     .borders(Borders::ALL)
@@ -40,14 +46,58 @@ pub fn render<B: Backend>(app: &mut App, frame: &mut Frame<'_, B>) {
             ),
             layout[1],
         );
-        frame.render_widget(
-            ratatui::widgets::Paragraph::new("").block(
-                Block::default()
-                    .title("Logs")
-                    .borders(Borders::ALL)
-                    .border_type(BorderType::Rounded),
-            ),
+
+        // TODO: Anpassen, dass man die Übungen sieht!
+        let history_entries = {
+            let mut result = Vec::with_capacity(activity_log.len());
+            for a in &activity_log {
+                let date = NaiveDateTime::from_timestamp_millis(a.date as i64 * 1000).unwrap();
+                result.push(Row::new(vec![
+                    Span::from(format!(
+                        "{:02}.{:02}.{} {:02}h",
+                        date.day(),
+                        date.month(),
+                        date.year(),
+                        date.hour()
+                    )),
+                    Span::from(a.activity.name.clone()),
+                    Span::from(format!("{}", a.intensity)),
+                    Span::from(a.comment.clone()),
+                ]));
+            }
+            result
+        };
+        frame.render_stateful_widget(
+            Table::new(history_entries)
+                .header(
+                    Row::new(["Date", "Activity", "Intensity", "Comment"]).style(
+                        Style::new()
+                            .fg(ratatui::style::Color::Yellow)
+                            .add_modifier(Modifier::BOLD | Modifier::UNDERLINED),
+                    ),
+                )
+                .widths(&[
+                    Constraint::Length(14),
+                    Constraint::Length(10),
+                    Constraint::Length(9),
+                    Constraint::Percentage(100),
+                ])
+                .highlight_style(if !activity_log.is_empty() {
+                    Style::default().fg(activity_log[app.activity_state.table.selected().unwrap()]
+                        .activity
+                        .color
+                        .into())
+                } else {
+                    Style::default()
+                })
+                .block(
+                    Block::default()
+                        .title("Logs")
+                        .borders(Borders::ALL)
+                        .border_type(BorderType::Rounded),
+                ),
             layout[2],
+            &mut app.activity_state.table,
         );
     }
 }
@@ -125,13 +175,33 @@ fn render_logging<B: Backend>(app: &mut App, frame: &mut Frame<'_, B>) {
         }
     }
 
-    let stopwatch = vec![
-        Line::from("51:23    0000  1111      2222   3333 "),
-        Line::from("        00  00   11   : 22  22 33  33"),
-        Line::from("08:56   00  00   11        22     33"),
-        Line::from("02:20   00  00   11   :   22   33  33"),
-        Line::from("01:50    0000  111111   222222  3333"),
-    ];
+    let elapsed_time = app.log_state.timer.get_elapsed();
+    let break_time = app.log_state.timer.get_round();
+
+    let big_nums = big_nums();
+    let mut stopwatch = vec![Vec::new(); 5];
+    for (i, sw) in stopwatch.iter_mut().enumerate() {
+        sw.push(Span::from("        "));
+        sw.extend(big_nums[break_time.num_minutes() as usize / 10][i].clone());
+        sw.push(Span::from(" "));
+        sw.extend(big_nums[break_time.num_minutes() as usize % 10][i].clone());
+        sw.push(Span::from(" "));
+        sw.extend(big_nums[10][i].clone());
+        sw.push(Span::from(" "));
+        sw.extend(big_nums[(break_time.num_seconds() % 60) as usize / 10][i].clone());
+        sw.push(Span::from(" "));
+        sw.extend(big_nums[(break_time.num_seconds() % 60) as usize % 10][i].clone());
+    }
+    stopwatch[0][0] = Span::from(format!(
+        "{:02}:{:02}   ",
+        elapsed_time.num_minutes(),
+        elapsed_time.num_seconds() % 60
+    ));
+
+    let mut stopwatch_lines = Vec::new();
+    for span in stopwatch {
+        stopwatch_lines.push(Line::from(span));
+    }
 
     let mut exercise_list = Vec::with_capacity(app.log_state.exercises.len() * 4 + 2);
     for exercise in &app.log_state.exercises {
@@ -223,7 +293,7 @@ fn render_logging<B: Backend>(app: &mut App, frame: &mut Frame<'_, B>) {
     );
 
     frame.render_widget(
-        Paragraph::new(stopwatch).block(
+        Paragraph::new(stopwatch_lines).block(
             ratatui::widgets::Block::default()
                 .title("Stopwatch: s:start/stop - b:break - r:reset")
                 .borders(Borders::ALL)
@@ -301,7 +371,7 @@ fn render_logging<B: Backend>(app: &mut App, frame: &mut Frame<'_, B>) {
 
     let history_entries = match app.log_state.active_area {
         LogArea::Activity => {
-            let activities = app.db.get_activity_log(&selected_activity.name);
+            let activities = app.db.get_activity_log(Some(selected_activity.id));
             let mut result = Vec::with_capacity(activities.len());
             for a in activities {
                 let date = NaiveDateTime::from_timestamp_millis(a.date as i64 * 1000).unwrap();
@@ -365,14 +435,6 @@ fn render_logging<B: Backend>(app: &mut App, frame: &mut Frame<'_, B>) {
                 ),
             )
             .widths(&history_widths)
-            .highlight_style(if !app.activity_state.activities.is_empty() {
-                Style::default().fg(app.activity_state.activities
-                    [app.activity_state.table.selected().unwrap_or(0)]
-                .color
-                .into())
-            } else {
-                Style::default()
-            })
             .block(
                 Block::default()
                     .title(history_title)

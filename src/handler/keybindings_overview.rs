@@ -37,6 +37,8 @@ pub fn handler(key_event: KeyEvent, app: &mut App) -> AppResult<()> {
                     .log_state
                     .decrease_selection(app.exercise_state.exercises.clone()),
                 KeyCode::Char('s') => app.save_log(),
+                KeyCode::Char('t') => app.log_state.timer.toggle(),
+                KeyCode::Char('r') => app.log_state.timer.round(),
                 _ => {}
             },
         }
@@ -45,6 +47,14 @@ pub fn handler(key_event: KeyEvent, app: &mut App) -> AppResult<()> {
         match key_event.code {
             KeyCode::Char('a') => app.active_menu = Menu::Add,
             KeyCode::Left => {}
+            KeyCode::Down => {
+                let selected = app.activity_state.table.selected().unwrap();
+                app.activity_state.table.select(Some(selected + 1));
+            }
+            KeyCode::Up => app
+                .activity_state
+                .table
+                .select(Some(app.activity_state.table.selected().unwrap() - 1)),
             _ => {}
         }
     }

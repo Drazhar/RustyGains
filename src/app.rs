@@ -133,6 +133,6 @@ pub enum Menu {
 
 impl Default for Menu {
     fn default() -> Self {
-        Self::Add
+        Self::Main
     }
 }

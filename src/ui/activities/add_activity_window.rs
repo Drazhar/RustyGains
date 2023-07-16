@@ -1,3 +1,4 @@
+// TODO: Bug wenn nach oben -> Index out of range
 use ratatui::{
     backend::Backend,
     style::Style,
@@ -29,13 +30,6 @@ pub fn draw<B: Backend>(frame: &mut Frame<B>, app: &mut App) {
                 "■ ".to_owned() + activity.color.into(),
                 Style::default().fg(activity.color.into()),
             ),
-        ]),
-        Line::from(vec![
-            Span::from("Has exercise "),
-            Span::from(match activity.has_exercise {
-                true => "☒",
-                false => "☐",
-            }),
         ]),
         Line::from("Save"),
     ];

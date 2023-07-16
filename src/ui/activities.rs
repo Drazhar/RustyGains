@@ -49,11 +49,6 @@ pub fn render<B: Backend>(app: &mut App, frame: &mut Frame<'_, B>) {
             Span::from(format!("{}", a.id)),
             Span::from(a.name.clone()),
             Span::styled("■", Style::new().fg(a.color.into())),
-            Span::from(a.symbol.clone()),
-            Span::from(match a.has_exercise {
-                true => "☒", // TODO: Nur Häkchen Symbol?
-                false => "",
-            }),
         ]))
     }
 
@@ -61,7 +56,7 @@ pub fn render<B: Backend>(app: &mut App, frame: &mut Frame<'_, B>) {
     frame.render_stateful_widget(
         ratatui::widgets::Table::new(activity_rows)
             .header(
-                Row::new(vec!["ID", "Name", "Color", "Symbol", "Exercises"]).style(
+                Row::new(vec!["ID", "Name", "Color"]).style(
                     Style::new()
                         .fg(ratatui::style::Color::Yellow)
                         .add_modifier(Modifier::BOLD | Modifier::UNDERLINED),
@@ -71,8 +66,6 @@ pub fn render<B: Backend>(app: &mut App, frame: &mut Frame<'_, B>) {
                 Constraint::Length(3),
                 Constraint::Length(18),
                 Constraint::Length(5),
-                Constraint::Length(6),
-                Constraint::Length(14),
             ])
             .highlight_style(if !app.activity_state.activities.is_empty() {
                 Style::default().fg(app.activity_state.activities

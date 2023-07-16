@@ -7,9 +7,7 @@ pub fn initialize(con: &Connection) {
         CREATE TABLE IF NOT EXISTS activity (
             id            INTEGER PRIMARY KEY,
             name          TEXT NOT NULL,
-            color         TEXT NOT NULL,
-            symbol        TEXT NOT NULL,
-            has_exercises INTEGER
+            color         TEXT NOT NULL
         );
 
         CREATE TABLE IF NOT EXISTS exercise (
