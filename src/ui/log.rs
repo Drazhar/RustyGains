@@ -220,7 +220,12 @@ impl LogState {
                 ExerciseElement::Break => exercise.breaks += 0.5,
                 ExerciseElement::Set(s) => {
                     if s >= exercise.reps.len() {
-                        exercise.reps.push(exercise.reps[0]);
+                        let default_reps = if exercise.reps.is_empty() {
+                            8
+                        } else {
+                            exercise.reps[0]
+                        };
+                        exercise.reps.push(default_reps);
                         self.exercise_selection.element = ExerciseElement::Set(s + 1);
                     } else {
                         exercise.reps[s] += 1;
@@ -322,7 +327,13 @@ impl ExerciseLog {
     pub fn new(db: &DB) -> Self {
         match db.get_last_exercise_log() {
             Ok(ex) => ex,
-            Err(_) => Self::default(),
+            Err(_) => {
+                let exercises = db.get_exercises();
+                ExerciseLog {
+                    exercise: exercises[0].clone(),
+                    ..Default::default()
+                }
+            }
         }
     }
 }

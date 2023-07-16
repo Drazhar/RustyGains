@@ -27,7 +27,6 @@ the near future.
 - Better error handling. Should make a clean exit with an error message.
 
 ## Bugs:
-- Default for ExerciseLog is nonesense
 - Add activity: Index out of range when going too far up
 - Overview table: Index out of range when going too far up/down
 - Dates are a mess. Always use naive date and functions for storing and 
