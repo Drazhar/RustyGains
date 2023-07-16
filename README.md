@@ -28,6 +28,5 @@ the near future.
 
 ## Bugs:
 - Add activity: Index out of range when going too far up
-- Overview table: Index out of range when going too far up/down
 - Dates are a mess. Always use naive date and functions for storing and 
   retrieving dates for better consistency

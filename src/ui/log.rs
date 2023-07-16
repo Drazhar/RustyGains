@@ -1,4 +1,5 @@
 use chrono::{DateTime, Duration, Local, Months, NaiveDateTime};
+use ratatui::widgets::TableState;
 
 use crate::data::{exercise::Exercise, DB};
 
@@ -13,6 +14,8 @@ pub struct LogState {
     pub exercises: Vec<ExerciseLog>,
     pub exercise_selection: ExerciseSelection,
     pub timer: Timer,
+    pub table: TableState,
+    pub table_size: usize,
 }
 
 #[derive(Default)]
@@ -87,6 +90,8 @@ impl Default for LogState {
                 element: ExerciseElement::Name,
             },
             timer: Timer::default(),
+            table: TableState::default().with_selected(Some(0)),
+            table_size: 0,
         }
     }
 }

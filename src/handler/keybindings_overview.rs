@@ -48,13 +48,17 @@ pub fn handler(key_event: KeyEvent, app: &mut App) -> AppResult<()> {
             KeyCode::Char('a') => app.active_menu = Menu::Add,
             KeyCode::Left => {}
             KeyCode::Down => {
-                let selected = app.activity_state.table.selected().unwrap();
-                app.activity_state.table.select(Some(selected + 1));
+                let new_selected = app.log_state.table.selected().unwrap() + 1;
+                if new_selected < app.log_state.table_size {
+                    app.log_state.table.select(Some(new_selected));
+                }
             }
-            KeyCode::Up => app
-                .activity_state
-                .table
-                .select(Some(app.activity_state.table.selected().unwrap() - 1)),
+            KeyCode::Up => {
+                let selected = app.log_state.table.selected().unwrap();
+                if selected > 0 {
+                    app.log_state.table.select(Some(selected - 1));
+                }
+            }
             _ => {}
         }
     }

@@ -67,6 +67,7 @@ pub fn render<B: Backend>(app: &mut App, frame: &mut Frame<'_, B>) {
             }
             result
         };
+        app.log_state.table_size = history_entries.len();
         frame.render_stateful_widget(
             Table::new(history_entries)
                 .header(
@@ -77,13 +78,13 @@ pub fn render<B: Backend>(app: &mut App, frame: &mut Frame<'_, B>) {
                     ),
                 )
                 .widths(&[
-                    Constraint::Length(14),
-                    Constraint::Length(10),
-                    Constraint::Length(9),
+                    Constraint::Length(15),
+                    Constraint::Length(19),
+                    Constraint::Length(2),
                     Constraint::Percentage(100),
                 ])
                 .highlight_style(if !activity_log.is_empty() {
-                    Style::default().fg(activity_log[app.activity_state.table.selected().unwrap()]
+                    Style::default().fg(activity_log[app.log_state.table.selected().unwrap()]
                         .activity
                         .color
                         .into())
@@ -97,7 +98,7 @@ pub fn render<B: Backend>(app: &mut App, frame: &mut Frame<'_, B>) {
                         .border_type(BorderType::Rounded),
                 ),
             layout[2],
-            &mut app.activity_state.table,
+            &mut app.log_state.table,
         );
     }
 }
