@@ -54,13 +54,16 @@ pub fn render<B: Backend>(app: &mut App, frame: &mut Frame<'_, B>) {
                 let date = NaiveDateTime::from_timestamp_millis(a.date as i64 * 1000).unwrap();
                 result.push(Row::new(vec![
                     Span::from(format!(
-                        "{:02}.{:02}.{} {:02}h",
+                        "{:02}.{:02}.{}:{:02}h",
                         date.day(),
                         date.month(),
                         date.year(),
                         date.hour()
                     )),
-                    Span::from(a.activity.name.clone()),
+                    Span::styled(
+                        &a.activity.name,
+                        Style::default().fg(a.activity.color.into()),
+                    ),
                     Span::from(format!("{}", a.intensity)),
                     Span::from(a.comment.clone()),
                 ]));
@@ -83,6 +86,7 @@ pub fn render<B: Backend>(app: &mut App, frame: &mut Frame<'_, B>) {
                     Constraint::Length(2),
                     Constraint::Percentage(100),
                 ])
+                .highlight_symbol(">>")
                 .highlight_style(if !activity_log.is_empty() {
                     Style::default().fg(activity_log[app.log_state.table.selected().unwrap()]
                         .activity
