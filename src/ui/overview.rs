@@ -21,6 +21,7 @@ use crate::settings::HIGHLIGHT_COLOR;
 
 use self::big_nums::big_nums;
 
+use super::log::ExerciseElement;
 use super::log::LogArea;
 use super::log::TimeSelection;
 use super::{basic_layout, render_tabs};
@@ -244,19 +245,27 @@ fn render_logging<B: Backend>(app: &mut App, frame: &mut Frame<'_, B>) {
         let adjusted_index = exercise_number * 4;
         if exercise_number < app.log_state.exercises.len() {
             match app.log_state.exercise_selection.element {
-                super::log::ExerciseElement::Name => {
+                ExerciseElement::Name => {
                     exercise_list[adjusted_index].spans[0].style = highlight_style
                 }
-                super::log::ExerciseElement::Weight => {
+                ExerciseElement::Weight => {
                     exercise_list[adjusted_index].spans[1].style = highlight_style
                 }
-                super::log::ExerciseElement::Break => {
+                ExerciseElement::Break => {
                     exercise_list[adjusted_index].spans[2].style = highlight_style
                 }
-                super::log::ExerciseElement::Set(i) => {
-                    exercise_list[adjusted_index + 1].spans[i + 1].style = highlight_style
+                ExerciseElement::Set(i) => {
+                    let spans = &mut exercise_list[adjusted_index + 1].spans;
+                    let span = match spans.get_mut(i + 1) {
+                        Some(s) => s,
+                        None => {
+                            app.log_state.exercise_selection.element = ExerciseElement::Set(0);
+                            &mut spans[1]
+                        }
+                    };
+                    span.style = highlight_style;
                 }
-                super::log::ExerciseElement::Intensity => {
+                ExerciseElement::Intensity => {
                     exercise_list[adjusted_index + 2].spans[1].style = highlight_style
                 }
             }
